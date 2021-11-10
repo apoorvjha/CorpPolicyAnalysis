@@ -15,6 +15,9 @@ from tensorflow.keras.losses import MeanAbsoluteError
 from tensorflow.keras.metrics  import MeanSquaredError
 from os.path import exists
 from os import listdir, rename, environ
+from pathlib import Path
+from warnings import filterwarnings
+filterwarnings('ignore')
 
 environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 logging_mode="info"
@@ -47,16 +50,16 @@ class Model:
             self.learning_rate=learning_rate
             self.model.add(Conv2D(filters=16,kernel_size=self.kernel_n,activation='relu',
             padding='same',input_shape=self.input_shape,strides=self.stride, dilation_rate=self.dilation))
-            self.model.add(MaxPool2D(pool_size=self.pooling_size))
+            #self.model.add(MaxPool2D(pool_size=self.pooling_size))
             self.model.add(Conv2D(filters=32,kernel_size=self.kernel_n,activation='relu',
             padding='same',strides=self.stride, dilation_rate=self.dilation))
-            self.model.add(MaxPool2D(pool_size=self.pooling_size))
+            #self.model.add(MaxPool2D(pool_size=self.pooling_size))
             self.model.add(Conv2D(filters=64,kernel_size=self.kernel_n,activation='relu',
             padding='same',strides=self.stride, dilation_rate=self.dilation))
-            self.model.add(MaxPool2D(pool_size=self.pooling_size))
+            #self.model.add(MaxPool2D(pool_size=self.pooling_size))
             self.model.add(Conv2D(filters=128,kernel_size=self.kernel_n,activation='relu',
             padding='same',strides=self.stride, dilation_rate=self.dilation))
-            self.model.add(MaxPool2D(pool_size=self.pooling_size))
+            #self.model.add(MaxPool2D(pool_size=self.pooling_size))
             self.model.add(Flatten())
             self.model.add(Dense(units=self.input_shape[0] * 128,activation='relu'))
             self.model.add(Dropout(self.dropout_p))
@@ -82,13 +85,14 @@ class Model:
             self.model.add(LSTM(32,dropout=self.dropout_p,return_sequences=True))
             self.model.add(LSTM(64,dropout=self.dropout_p,return_sequences=True))
             self.model.add(Flatten())
-            self.model.add(Dense(units=self.input_shape[0] * 128,activation='relu'))
-            self.model.add(Dropout(self.dropout_p))
             self.model.add(Dense(units=32,activation='relu'))
             self.model.add(Dropout(self.dropout_p))
             self.model.add(Dense(units=16,activation='relu'))
             self.model.add(Dropout(self.dropout_p))
+            self.model.add(Dense(units=8,activation='relu'))
+            self.model.add(Dropout(self.dropout_p))
             self.model.add(Dense(units=self.n_output))
+            #print(self.model.summary())
             self.model.compile(optimizer=Adam(learning_rate=self.learning_rate),loss=MeanAbsoluteError(),metrics=[MeanSquaredError()])
         log.log("LSTM Model Initialized!")
     def save_model(self,fname):
@@ -100,11 +104,18 @@ class Model:
         log.log(f"  Model loaded from {fname} file.")
     def fit(self,X,Y,batch_size,epochs,validation_split=0.2):
         log.log("  Model training started.")
-        self.history=self.model.fit(X,Y,batch_size=batch_size,epochs=epochs,validation_split=validation_split)
+        self.history=self.model.fit(X,Y,batch_size=batch_size,epochs=epochs,validation_split=validation_split,verbose=0)
         log.log("  Model training completed.")
     def predict(self,X):
         log.log("  Model completed the prediction.")
         return self.model.predict(X)
+    def performance(self,Y1,Y2,precision=4):
+        assert Y1.shape==Y2.shape , "Shape of both the parameters should be same."
+        sum=0
+        for i in Y1[0]:
+            for j in Y2[0]:
+                sum+=i-j    
+        return round(sum/Y1.shape[0],precision)
 
 class Data:
     def __init__(self,filename):
@@ -136,6 +147,7 @@ class Data:
         assert mode==1 or mode==0 , "Mode Should be in the interval [0,1]"
         if mode==0:
             # mode to check the datatypes of each individual columns.
+            types={}
             print("Column Name",end="")
             for i in range(35-len("Column Name")):
                 print(end=" ")
@@ -146,10 +158,13 @@ class Data:
                 for i in range(30-len(col)):
                     print(end=" ")
                 print("|   ",self.dataset[str(col)].dtype)
+                types[str(col)]=self.dataset[str(col)].dtype
+            return types
         else:
             # mode to check the NAN count of each columns. 
             max_NAN=0        # stores the count of Maximum number of NAN that is present in the dataset.
             colname=""       # stores the columns which is our culprit that contains maximum NAN count
+            nans={}
             print("Column Name",end="")
             for i in range(35-len("Column Name")):
                 print(end=" ")
@@ -157,6 +172,7 @@ class Data:
             print("-------------------------------------------------------------")
             for col in self.dataset.columns:
                 cnt=self.dataset[str(col)].isnull().sum()
+                nans[str(col)]=cnt
                 print(col,end="")
                 for i in range(30-len(col)):
                     print(end=" ")
@@ -167,6 +183,7 @@ class Data:
             if max_NAN!=0:
                 print()
                 print(f"Maximum NAN count found is {max_NAN} in column \"{colname}\"! Which is {round(max_NAN/len(self.dataset),4)*100}% of the total dataset.")
+            return nans
     def statistical_information(self):
         # Helper function to calculate total row count, Mean , Minimum and Maximum values of each columns data.
         print("Column Name",end="")
@@ -176,13 +193,13 @@ class Data:
         for i in range(15-len("Count")):
             print(end=" ")
         print(" Mean",end="")
-        for i in range(15-len("Mean")):
+        for i in range(25-len("Mean")):
             print(end=" ")
         print(" Minimum",end="")
-        for i in range(15-len("Minumum")):
+        for i in range(25-len("Minumum")):
             print(end=" ")
         print(" Maximum")
-        print("-----------------------------------------------------------------------------------------------")
+        print("--------------------------------------------------------------------------------------------------------------")
         for col in self.dataset.columns:
             if type(self.dataset[str(col)][0]) != type(""):
                 print(col,end="")
@@ -192,10 +209,10 @@ class Data:
                 for i in range(10-len(str(self.dataset[str(col)].count()))):
                     print(end=" ")
                 print("|   ",round(self.dataset[str(col)].mean(),3),end="")
-                for i in range(10-len(str(round(self.dataset[str(col)].mean(),3)))):
+                for i in range(20-len(str(round(self.dataset[str(col)].mean(),3)))):
                     print(end=" ")
                 print("|   ",self.dataset[str(col)].min(),end="")
-                for i in range(10-len(str(self.dataset[str(col)].min()))):
+                for i in range(20-len(str(self.dataset[str(col)].min()))):
                     print(end=" ")
                 print("|   ",self.dataset[str(col)].max())
     def denoise(self,mode):
@@ -211,15 +228,43 @@ class Data:
             # drop NANs rows.
             self.dataset=self.dataset.dropna()
             self.dataset=self.dataset.reset_index(drop=True)
-
+    def check_cols(self,cols):
+        for i in cols:
+            if i not in self.dataset.columns:
+                return False
+        return True 
     def vectorize(self,predictor_cols,target_cols):
         X=[]
         Y=[]
         temp=[]
         predictor_cols=array(predictor_cols)
         target_cols=array(target_cols)
+        self.tokens={}
         for col in predictor_cols:
-            temp.append(self.dataset[str(col)].values)
+            if self.dataset[str(col)].dtype == type("") and 'date' not in col.lower():
+                distinct=[]
+                values=self.dataset[str(col)].values
+                for value in values:
+                    if value not in distinct:
+                        distinct.append(value)
+                self.tokens[str(col)]={distinct[i] : i for i in range(len(distinct))}
+                for i in range(len(values)):
+                    values[i]=self.tokens[str(col)][values[i]]
+                temp.append(values)
+            elif 'date' in col.lower():
+                year=[]
+                month=[]
+                day=[]
+                values=self.dataset[str(col)].values
+                for value in values:
+                    year.append(int(value.split('-')[0]))
+                    month.append(int(value.split('-')[1]))
+                    day.append(int(value.split('-')[2]))
+                temp.append(year)
+                temp.append(month)
+                temp.append(day)
+            else:
+                temp.append(self.dataset[str(col)].values)
         temp=array(temp)
         for i in range(temp.shape[1]):
             dims=[]
@@ -228,6 +273,7 @@ class Data:
             X.append(dims)
         temp=[]
         for col in target_cols:
+            assert self.dataset[str(col)].dtype != type("") , "Exception : Target column cannot be of String type."
             temp.append(self.dataset[str(col)].values)
         temp=array(temp)
         for i in range(temp.shape[1]):
@@ -257,10 +303,22 @@ class Data:
                         plt.xlabel(f"{col1}")
                         plt.ylabel(f"{col2}")
                         plt.title(f"{col1} versus {col2} Line Plot")
-                        plt.plot(self.dataset[str(col1)].values[val_range[0]:val_range[1]],self.dataset[str(col2)].values[val_range[0]:val_range[1]],s=area,c=color,alpha=alpha)
+                        plt.plot(self.dataset[str(col1)].values[val_range[0]:val_range[1]],self.dataset[str(col2)].values[val_range[0]:val_range[1]],c=color,alpha=alpha)
                         plt.savefig(f"{self.plot_location}{name}_{col1}_{col2}.png")
                         plt.close()
                         fnames.append(f"{self.plot_location}{name}_{col1}_{col2}.png")
                     else:
                         print("Problem")
         return fnames
+    def split(self,X,Y,test_ratio=0.2,shuffle=True,random_state=42):
+        X_train, X_test, Y_train, Y_test = train_test_split(X,Y,test_size=test_ratio,shuffle=shuffle,random_state=random_state)
+        return X_train, X_test, Y_train, Y_test
+    def plot_in_time(self,X1,X2,title,label,legend,fname):
+        plt.plot(X1)
+        plt.plot(X2)
+        plt.title(title)
+        plt.xlabel(label[0])
+        plt.ylabel(label[1])
+        plt.legend(legend,loc="upper left")
+        plt.savefig(self.plot_location+fname)
+        plt.close()
