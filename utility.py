@@ -9,10 +9,11 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.neural_network import MLPRegressor
 from datetime import datetime
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPool2D, LSTM
+from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPool2D, LSTM, ConvLSTM2D
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import MeanAbsoluteError
 from tensorflow.keras.metrics  import MeanSquaredError
+import tensorflow as tf
 from os.path import exists
 from os import listdir, rename, environ
 from pathlib import Path
@@ -20,6 +21,7 @@ from warnings import filterwarnings
 filterwarnings('ignore')
 
 environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 logging_mode="info"
 
 class Logger:
@@ -95,6 +97,31 @@ class Model:
             #print(self.model.summary())
             self.model.compile(optimizer=Adam(learning_rate=self.learning_rate),loss=MeanAbsoluteError(),metrics=[MeanSquaredError()])
         log.log("LSTM Model Initialized!")
+    def LSTM_CNN_HYBRID(self,input_shape=None,stride=(1,1),dilation=(1,1),kernel_n=3,pooling_size=(2,2),dropout_p=0.2,n_output=2,learning_rate=1e-3):
+        log.log("CNN Model Initilaizing...")
+        if input_shape!=None:
+            self.kernel_n=kernel_n
+            self.input_shape=input_shape 
+            self.stride=stride      # skips, kernel makes at every convolution
+            self.dilation=dilation  # kernel coverage
+            self.pooling_size=pooling_size
+            self.dropout_p=dropout_p
+            self.n_output=n_output
+            self.learning_rate=learning_rate
+            self.model.add(ConvLSTM2D(filters=64,kernel_size=(self.kernel_n,self.kernel_n),activation='relu',
+            padding='same',input_shape=self.input_shape,strides=self.stride, dilation_rate=self.dilation, 
+            dropout=self.dropout_p))
+            self.model.add(Flatten())
+            self.model.add(Dense(units=self.input_shape[0] * 32,activation='relu'))
+            self.model.add(Dropout(self.dropout_p))
+            self.model.add(Dense(units=16,activation='relu'))
+            self.model.add(Dropout(self.dropout_p))
+            self.model.add(Dense(units=8,activation='relu'))
+            self.model.add(Dropout(self.dropout_p))
+            self.model.add(Dense(units=self.n_output))
+            #print(self.model.summary())
+            self.model.compile(optimizer=Adam(learning_rate=self.learning_rate),loss=MeanAbsoluteError(),metrics=[MeanSquaredError()])
+        log.log("CNN Model Initialized!")        
     def save_model(self,fname):
         self.model.save(fname)
         log.log(f"  Model saved in {fname} file.")
@@ -114,7 +141,7 @@ class Model:
         sum=0
         for i in Y1[0]:
             for j in Y2[0]:
-                sum+=i-j    
+                sum+=(i-j)**2    
         return round(sum/Y1.shape[0],precision)
 
 class Data:
