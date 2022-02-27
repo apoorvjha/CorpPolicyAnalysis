@@ -63,26 +63,26 @@ def driver(directory="./static/processing_dir/"):
         "Loss", ["Metrics","Epochs"],["Train","Validation"],f"Loss_cnn_{i.filename.split('/')[-1]}.png")
         i.plot_in_time(model_cnn.history.history['mean_squared_error'],
         model_cnn.history.history['val_mean_squared_error'],
-        "MSE", ["Metrics","Epochs"],["Train","Validation"],f"mse_cnn_{i.filename.split('/')[-1]}.png")
+        "MAE", ["Metrics","Epochs"],["Train","Validation"],f"mse_cnn_{i.filename.split('/')[-1]}.png")
         print()
         prediction=model_cnn.predict(X_test)
-        print(f"MSE for CNN model : {model_cnn.performance(prediction,Y_test)}")
+        print(f"MAE for CNN model : {model_cnn.performance(prediction,Y_test)}")
         print()
         print()
         X=X.reshape((X.shape[0],1,X.shape[-1]))
         model_lstm=utility.Model()
         model_lstm.LSTM(input_shape=X.shape[1:],n_output=Y.shape[1])
         X_train, X_test, Y_train, Y_test=i.split(X,Y)
-        model_lstm.fit(X_train,Y_train,batch_size=4,epochs=15,validation_split=0.2)
+        model_lstm.fit(X_train,Y_train,batch_size=4,epochs=25,validation_split=0.2)
         i.plot_in_time(model_lstm.history.history['loss'],
         model_lstm.history.history['val_loss'],
         "Loss", ["Metrics","Epochs"],["Train","Validation"],f"Loss_lstm{i.filename.split('/')[-1]}.png")
         i.plot_in_time(model_lstm.history.history['mean_squared_error'],
         model_lstm.history.history['val_mean_squared_error'],
-        "MSE", ["Metrics","Epochs"],["Train","Validation"],f"mse_lstm{i.filename.split('/')[-1]}.png")
+        "MAE", ["Metrics","Epochs"],["Train","Validation"],f"mse_lstm{i.filename.split('/')[-1]}.png")
         print()
         prediction=model_lstm.predict(X_test)
-        print(f"MSE for LSTM model : {model_lstm.performance(prediction,Y_test)}")
+        print(f"MAE for LSTM model : {model_lstm.performance(prediction,Y_test)}")
         print()
         print()
         X=X.reshape((X.shape[0],1,1,1,-1))
@@ -95,10 +95,10 @@ def driver(directory="./static/processing_dir/"):
         "Loss", ["Metrics","Epochs"],["Train","Validation"],f"Loss_conv_lstm{i.filename.split('/')[-1]}.png")
         i.plot_in_time(model_conv_lstm.history.history['mean_squared_error'],
         model_conv_lstm.history.history['val_mean_squared_error'],
-        "MSE", ["Metrics","Epochs"],["Train","Validation"],f"mse_conv_lstm{i.filename.split('/')[-1]}.png")
+        "MAE", ["Metrics","Epochs"],["Train","Validation"],f"mse_conv_lstm{i.filename.split('/')[-1]}.png")
         prediction=model_conv_lstm.predict(X_test)
         print()
-        print(f"MSE for ConvLSTM model : {model_conv_lstm.performance(prediction,Y_test)}")
+        print(f"MAE for ConvLSTM model : {model_conv_lstm.performance(prediction,Y_test)}")
         #utility.rename(i,f"./static/done/{i.filename.split('/')[-1]}")
         print(f"------------------- Analysis of {i.filename.split('/')[-1]} done --------------------")
         print()
