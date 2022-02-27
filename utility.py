@@ -56,8 +56,8 @@ class Model:
             self.model.add(Conv2D(filters=32,kernel_size=self.kernel_n,activation='relu',
             padding='same',strides=self.stride, dilation_rate=self.dilation))
             #self.model.add(MaxPool2D(pool_size=self.pooling_size))
-            self.model.add(Conv2D(filters=64,kernel_size=self.kernel_n,activation='relu',
-            padding='same',strides=self.stride, dilation_rate=self.dilation))
+            #self.model.add(Conv2D(filters=64,kernel_size=self.kernel_n,activation='relu',
+            #padding='same',strides=self.stride, dilation_rate=self.dilation))
             #self.model.add(MaxPool2D(pool_size=self.pooling_size))
             self.model.add(Conv2D(filters=128,kernel_size=self.kernel_n,activation='relu',
             padding='same',strides=self.stride, dilation_rate=self.dilation))
@@ -65,10 +65,10 @@ class Model:
             self.model.add(Flatten())
             self.model.add(Dense(units=self.input_shape[0] * 128,activation='relu'))
             self.model.add(Dropout(self.dropout_p))
-            self.model.add(Dense(units=128,activation='relu'))
-            self.model.add(Dropout(self.dropout_p))
-            self.model.add(Dense(units=64,activation='relu'))
-            self.model.add(Dropout(self.dropout_p))
+            #self.model.add(Dense(units=128,activation='relu'))
+            #self.model.add(Dropout(self.dropout_p))
+            #self.model.add(Dense(units=64,activation='relu'))
+            #self.model.add(Dropout(self.dropout_p))
             self.model.add(Dense(units=32,activation='relu'))
             self.model.add(Dropout(self.dropout_p))
             self.model.add(Dense(units=16,activation='relu'))
@@ -83,10 +83,13 @@ class Model:
             self.dropout_p=dropout_p
             self.n_output=n_output
             self.learning_rate=learning_rate
-            self.model.add(LSTM(16,dropout=self.dropout_p,input_shape=self.input_shape,return_sequences=True))
+            self.model.add(LSTM(8,dropout=self.dropout_p,input_shape=self.input_shape,return_sequences=True))
+            self.model.add(LSTM(16,dropout=self.dropout_p,return_sequences=True))
             self.model.add(LSTM(32,dropout=self.dropout_p,return_sequences=True))
             self.model.add(LSTM(64,dropout=self.dropout_p,return_sequences=True))
             self.model.add(Flatten())
+            self.model.add(Dense(units=64,activation='relu'))
+            self.model.add(Dropout(self.dropout_p))
             self.model.add(Dense(units=32,activation='relu'))
             self.model.add(Dropout(self.dropout_p))
             self.model.add(Dense(units=16,activation='relu'))
@@ -141,7 +144,8 @@ class Model:
         sum=0
         for i in Y1[0]:
             for j in Y2[0]:
-                sum+=(i-j)**2    
+                #sum+=(i-j)**2  
+                sum+=abs(i-j)   
         return round(sum/Y1.shape[0],precision)
 
 class Data:
@@ -309,7 +313,7 @@ class Data:
                 dims.append(temp[j][i])
             Y.append(dims)
         return X,Y
-    def plot(self,mode=1,name='default_plot',val_range=(0,100),area=5,color='green',alpha=0.5):
+    def plot(self,mode=0,name='default_plot',val_range=(0,100),area=5,color='green',alpha=0.5):
         fnames=[]
         for col1 in self.dataset.columns:
             for col2 in self.dataset.columns:
